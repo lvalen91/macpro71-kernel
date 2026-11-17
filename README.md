@@ -44,4 +44,4 @@ Apple firmware (Wi-Fi/Bluetooth) is not redistributable. Extract it from macOS w
 
 ## License
 
-Patches and kernel config: GPL-2.0, as the kernel. Everything else: GPL-2.0.
+Original work: GPL-2.0-only. Kernel patches keep the licenses of the files they touch (GPL-2.0, MIT, BSD-3-Clause, ISC). See `NOTICE.md`.

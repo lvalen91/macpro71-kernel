@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: GPL-2.0-only
+# Copyright (C) 2026 lvalen91
 """Fake-sysfs tests: python3 -m unittest -v tests/test_thermald.py"""
 import importlib
 import os

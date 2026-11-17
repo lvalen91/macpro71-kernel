@@ -1,4 +1,6 @@
 #!/bin/bash
+# SPDX-License-Identifier: GPL-2.0-only
+# Copyright (C) 2026 lvalen91
 # Build the MacPro7,1 kernel RPM. Usage: ./build.sh [workdir]
 # Needs: rpm-build bc flex bison dwarves elfutils-libelf-devel elfutils-devel
 #        openssl-devel ncurses-devel perl zstd ccache

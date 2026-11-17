@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: GPL-2.0
+// SPDX-License-Identifier: GPL-2.0-only
 /*
  * Livepatch stand-in for the drivers/acpi/x86/utils.c hunk of
  * linux-t2-patches 9003 ("Bluetooth: enable internal controller on
