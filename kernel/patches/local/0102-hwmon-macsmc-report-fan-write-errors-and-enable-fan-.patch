@@ -1,0 +1,50 @@
+From 911d839d0ba2d18aa30ba35c98a14e87cabce8de Mon Sep 17 00:00:00 2001
+From: lvalen91 <lvalen91@users.noreply.github.com>
+Date: Mon, 16 Nov 2026 17:42:32 -0900
+Subject: [PATCH 102/104] hwmon: macsmc: report fan write errors and enable fan
+ control by default on x86
+
+macsmc_hwmon_write_fan() returned (ret > 0), which turned every negative
+error from the SMC write into 0, so a failed target write looked like a
+success to user space. Return the error instead.
+
+On x86 T2 Macs, fan_control was off by default, so every fan write failed
+with -EOPNOTSUPP until a user set an unsafe module parameter that taints
+the kernel. Default it on for x86. Nothing writes fans unless user space
+does, so the SMC keeps automatic control by default.
+---
+ drivers/hwmon/macsmc-hwmon.c | 9 +++++----
+ 1 file changed, 5 insertions(+), 4 deletions(-)
+
+diff --git a/drivers/hwmon/macsmc-hwmon.c b/drivers/hwmon/macsmc-hwmon.c
+index 870ee7d42..66da6d7b2 100644
+--- a/drivers/hwmon/macsmc-hwmon.c
++++ b/drivers/hwmon/macsmc-hwmon.c
+@@ -41,10 +41,10 @@
+ #define FLT_MANT_MASK	GENMASK(22, 0)
+ #define FLT_SIGN_MASK	BIT(31)
+ 
+-static bool fan_control;
++static bool fan_control = IS_ENABLED(CONFIG_X86);
+ module_param_unsafe(fan_control, bool, 0644);
+ MODULE_PARM_DESC(fan_control,
+-		 "Override the SMC to set your own fan speeds on supported machines");
++		 "Override the SMC to set your own fan speeds on supported machines (default on for x86 T2 Macs)");
+ 
+ struct macsmc_hwmon_sensor {
+ 	struct apple_smc_key_info info;
+@@ -656,8 +656,9 @@ static int macsmc_hwmon_write_fan(struct device *dev, u32 attr, int channel,
+ 
+ 			hwmon->fan.fans[channel].manual = true;
+ 		}
+-		return macsmc_hwmon_write_key(hwmon->smc,
+-					      &hwmon->fan.fans[channel].set, val) > 0;
++		ret = macsmc_hwmon_write_key(hwmon->smc,
++					     &hwmon->fan.fans[channel].set, val);
++		return ret < 0 ? ret : 0;
+ 	} else if (!val) {
+ 		if (hwmon->fan.fans[channel].manual) {
+ 			if (hwmon->fan.has_old_manual)
+-- 
+2.56.1
+

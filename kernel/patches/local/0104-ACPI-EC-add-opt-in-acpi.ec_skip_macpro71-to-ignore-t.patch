@@ -1,0 +1,75 @@
+From 1f37e6500b920638352679d40730bec0eb3da541 Mon Sep 17 00:00:00 2001
+From: lvalen91 <lvalen91@users.noreply.github.com>
+Date: Mon, 16 Nov 2026 17:42:32 -0900
+Subject: [PATCH 104/104] ACPI: EC: add opt-in acpi.ec_skip_macpro71 to ignore
+ the legacy EC
+
+The Mac Pro 7,1 legacy EC is only used by macOS-path AML. With
+acpi.ec_skip_macpro71=1 on that machine, skip the ECDT and DSDT EC probe
+and the EC driver bind, so no EC transactions are attempted. Off by
+default: AML that touches the EC region will report errors.
+---
+ drivers/acpi/ec.c | 26 ++++++++++++++++++++++++++
+ 1 file changed, 26 insertions(+)
+
+diff --git a/drivers/acpi/ec.c b/drivers/acpi/ec.c
+index db999448e..8a9d3d246 100644
+--- a/drivers/acpi/ec.c
++++ b/drivers/acpi/ec.c
+@@ -117,6 +117,21 @@ static bool ec_busy_polling __read_mostly;
+ module_param(ec_busy_polling, bool, 0644);
+ MODULE_PARM_DESC(ec_busy_polling, "Use busy polling to advance EC transaction");
+ 
++/*
++ * Mac Pro 7,1: ignore the legacy EC entirely. Opt-in, untested: AML that
++ * touches the EC region will fail. Overrides the short ec_delay quirk.
++ */
++static bool ec_skip_macpro71 __read_mostly;
++module_param(ec_skip_macpro71, bool, 0444);
++MODULE_PARM_DESC(ec_skip_macpro71, "Mac Pro 7,1 only: do not use the legacy EC");
++
++static bool ec_skipped(void)
++{
++	return ec_skip_macpro71 &&
++	       dmi_match(DMI_SYS_VENDOR, "Apple Inc.") &&
++	       dmi_match(DMI_PRODUCT_NAME, "MacPro7,1");
++}
++
+ static unsigned int ec_polling_guard __read_mostly = ACPI_EC_UDELAY_POLL;
+ module_param(ec_polling_guard, uint, 0644);
+ MODULE_PARM_DESC(ec_polling_guard, "Guard time(us) between EC accesses in polling modes");
+@@ -1692,6 +1707,9 @@ static int acpi_ec_probe(struct platform_device *pdev)
+ 	struct acpi_ec *ec;
+ 	int ret;
+ 
++	if (ec_skipped())
++		return -ENODEV;
++
+ 	device = ACPI_COMPANION(&pdev->dev);
+ 	if (!device)
+ 		return -ENODEV;
+@@ -1822,6 +1840,9 @@ void __init acpi_ec_dsdt_probe(void)
+ 	acpi_status status;
+ 	int ret;
+ 
++	if (ec_skipped())
++		return;
++
+ 	/*
+ 	 * If a platform has ECDT, there is no need to proceed as the
+ 	 * following probe is not a part of the ACPI device enumeration,
+@@ -2050,6 +2071,11 @@ void __init acpi_ec_ecdt_probe(void)
+ 	acpi_status status;
+ 	int ret;
+ 
++	if (ec_skipped()) {
++		pr_info("Mac Pro 7,1: legacy EC ignored (ec_skip_macpro71)\n");
++		return;
++	}
++
+ 	/* Generate a boot ec context. */
+ 	dmi_check_system(ec_dmi_table);
+ 	status = acpi_get_table(ACPI_SIG_ECDT, 1,
+-- 
+2.56.1
+

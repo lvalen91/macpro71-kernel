@@ -1,0 +1,48 @@
+From 9b49b1160f748bd01da3ccfda1ffa6734f7c4e14 Mon Sep 17 00:00:00 2001
+From: lvalen91 <lvalen91@users.noreply.github.com>
+Date: Mon, 16 Nov 2026 17:42:32 -0900
+Subject: [PATCH 103/104] PCI: make Titan Ridge NHI and xHCI not wake-capable
+ on the Apple Mac Pro 7,1
+
+The Mac Pro 7,1 has four Titan Ridge controllers. Armed as wake sources
+at shutdown, their NHI (15eb) and xHCI (15ec) functions power the machine
+back on after S5 (t2linux/wiki#748). The drivers enable wakeup at probe,
+after sysfs defaults are set, so a udev rule is racy. Clear wake
+capability in a final fixup, gated on DMI. The bridges (15ea) already
+default to disabled.
+---
+ drivers/pci/quirks.c | 18 ++++++++++++++++++
+ 1 file changed, 18 insertions(+)
+
+diff --git a/drivers/pci/quirks.c b/drivers/pci/quirks.c
+index d4fcc336b..a5ab0de6c 100644
+--- a/drivers/pci/quirks.c
++++ b/drivers/pci/quirks.c
+@@ -6451,6 +6451,24 @@ static void pci_fixup_d3cold_delay_1sec(struct pci_dev *pdev)
+ }
+ DECLARE_PCI_FIXUP_FINAL(0x5555, 0x0004, pci_fixup_d3cold_delay_1sec);
+ 
++/*
++ * Apple Mac Pro 7,1 has four Titan Ridge controllers. Left armed as wake
++ * sources, their NHI and xHCI functions power the machine back on after a
++ * shutdown (t2linux/wiki#748). Drivers enable wakeup at probe, after the
++ * sysfs default is set, so make the functions not wake-capable up front.
++ * The bridges are already disabled by default.
++ */
++static void quirk_macpro71_titan_ridge_nowake(struct pci_dev *dev)
++{
++	if (!dmi_match(DMI_SYS_VENDOR, "Apple Inc.") ||
++	    !dmi_match(DMI_PRODUCT_NAME, "MacPro7,1"))
++		return;
++
++	device_set_wakeup_capable(&dev->dev, false);
++}
++DECLARE_PCI_FIXUP_FINAL(PCI_VENDOR_ID_INTEL, 0x15eb, quirk_macpro71_titan_ridge_nowake);
++DECLARE_PCI_FIXUP_FINAL(PCI_VENDOR_ID_INTEL, 0x15ec, quirk_macpro71_titan_ridge_nowake);
++
+ #ifdef CONFIG_PCIEAER
+ static void pci_mask_replay_timer_timeout(struct pci_dev *pdev)
+ {
+-- 
+2.56.1
+

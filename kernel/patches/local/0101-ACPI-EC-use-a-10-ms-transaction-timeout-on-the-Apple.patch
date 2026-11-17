@@ -1,8 +1,8 @@
 From 7b692e2c7a233a13bb51d160718aafbcb5ea2f97 Mon Sep 17 00:00:00 2001
 From: lvalen91 <lvalen91@users.noreply.github.com>
 Date: Mon, 16 Nov 2026 16:25:24 -0900
-Subject: [PATCH] ACPI: EC: use a 10 ms transaction timeout on the Apple Mac
- Pro 7,1
+Subject: [PATCH 101/104] ACPI: EC: use a 10 ms transaction timeout on the
+ Apple Mac Pro 7,1
 
 The Mac Pro 7,1 DSDT/ECDT declare a legacy EC that only macOS-path AML
 uses. Every access times out and waits the default 500 ms, adding about
@@ -13,7 +13,7 @@ set on the command line (acpi.ec_delay).
  1 file changed, 23 insertions(+)
 
 diff --git a/drivers/acpi/ec.c b/drivers/acpi/ec.c
-index a89f102..db99944 100644
+index a89f10256..db999448e 100644
 --- a/drivers/acpi/ec.c
 +++ b/drivers/acpi/ec.c
 @@ -1953,6 +1953,21 @@ static int ec_honor_dsdt_gpe(const struct dmi_system_id *id)

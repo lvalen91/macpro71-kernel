@@ -14,15 +14,24 @@ Custom Linux kernel and fixes for the Mac Pro 7,1 (2019, T2) on Fedora 45.
 - Patches: [t2linux/linux-t2-patches](https://github.com/t2linux/linux-t2-patches) @ `dd9b845` (`kernel/patches/t2/`, in `series` order), including 9003 (MacPro7,1 Bluetooth)
 - Local patches (`kernel/patches/local/`):
   - `0101` ACPI EC: 10 ms transaction timeout on MacPro7,1 (DMI quirk, skipped if `acpi.ec_delay` is set)
-- Config (`kernel/config`): Fedora t2linux 7.3.3-310 config; built-in cmdline `intel_iommu=on iommu=nopt pm_async=off`; `LOCALVERSION=-macpro1`
-- Output: `kernel-7.3.4_macpro1-N.fc45.x86_64.rpm` (about 185 MB)
+  - `0102` hwmon macsmc: return fan write errors (they were turned into success); fan control on by default on x86
+  - `0103` PCI: Titan Ridge NHI/xHCI not wake-capable on MacPro7,1
+  - `0104` ACPI EC: opt-in `acpi.ec_skip_macpro71=1` to ignore the legacy EC (untested)
+- Config (`kernel/config`), from the Fedora t2linux 7.3.3-310 config:
+  - Built-in cmdline `intel_iommu=on iommu=nopt pm_async=off no_console_suspend`; `LOCALVERSION=-macpro2`
+  - `X86_NATIVE_CPU=y`, `NR_CPUS=64`, Intel CPU support only
+  - Off: `SENSORS_APPLESMC`, `APFS_FS`, `MACSMC_WDT`, Xen, Hyper-V, TDX, VMware/VirtualBox guests, AMD-CPU drivers, laptop-vendor platform drivers, `SND_SOC`
+  - Built in: `XFS_FS`, `AQTION` (AQC107), `NETCONSOLE`
+  - Kept: all USB, Thunderbolt, PCI, storage, network, filesystem and GPU drivers (plug-in hardware)
+  - S3 debug options: see `docs/s3-debug.md`
+- Output: `kernel-7.3.4_macpro2-N.fc45.x86_64.rpm`
 
 ```
 ./kernel/build.sh
-sudo dnf install build/linux-7.3.4/rpmbuild/RPMS/x86_64/kernel-7.3.4_macpro1-*.rpm
+sudo dnf install build/linux-7.3.4/rpmbuild/RPMS/x86_64/kernel-7.3.4_macpro2-*.rpm
 ```
 
-Check before rebooting: the new loader entry has `iommu=nopt`, and the initramfs contains xfs if root is XFS.
+Check before rebooting: the new loader entry has `iommu=nopt`, and the initramfs contains what the root needs. The build uses `-march=native`: build on the machine that runs it.
 
 ## Fixes
 
@@ -30,13 +39,17 @@ Check before rebooting: the new loader entry has `iommu=nopt`, and the initramfs
 |---|---|
 | `fixes/thermald/` | Zone fan control through `macsmc_hwmon` (`python3 -I tests/test_thermald.py -v`) |
 | `fixes/system/kernel-cmdline` | `iommu=nopt acpi.ec_delay=10` |
-| `fixes/system/90-no-applesmc.conf` | Blacklist `applesmc` |
-| `fixes/system/90-no-apfs.conf` | Block `apfs` (oopsed on 7.3.3) |
-| `fixes/system/90-titan-ridge-no-wakeup.rules` | Disable PCI wakeup on Titan Ridge |
-| `fixes/system/90-macpro-no-watchdog.conf` | Disable systemd's SMC watchdog arming |
+| `fixes/bluetooth/` | Hex to `.hcd` converter for Apple's BCM4364B3 firmware (untested) |
+| `fixes/legacy/system/` | Blacklists, wakeup rule and watchdog drop-in, replaced by the `macpro2` kernel config and patches; still needed on 7.3.3 |
 | `fixes/legacy/bt-livepatch/` | Bluetooth livepatch for 7.3.3-310, obsolete with patch 9003 built in |
 
-Install paths: `.conf` files in `/etc/modprobe.d/`, the rule in `/etc/udev/rules.d/`, the watchdog file in `/etc/systemd/system.conf.d/`, the daemon as `/usr/libexec/macpro-thermald`, its config as `/etc/macpro-thermald.conf`.
+Install paths: the daemon as `/usr/libexec/macpro-thermald`, its config as `/etc/macpro-thermald.conf`, the unit in `/usr/lib/systemd/system/`.
+
+## Docs
+
+- `docs/research.md`: problem, cause, fix, status
+- `docs/iommu-ans2.md`: why `iommu=pt` panics the T2, and safe ways to investigate
+- `docs/s3-debug.md`: suspend debug setup and procedure
 
 ## Not included
 
