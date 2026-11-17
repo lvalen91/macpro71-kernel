@@ -15,7 +15,7 @@ Suspend is masked (`sleep.target`, `suspend.target`). Resume hangs; the journal 
 
 ## Netconsole
 
-Built in; starts at ~2.7 s, before udev renames the NIC (`eth0` -> `enp3s0`), so name the local NIC by MAC. Add to the loader entry (use your own addresses):
+Built in; starts at ~2.7 s, before udev renames the NIC (`eth0` -> `enp3s0`), so name the local NIC by its permanent MAC (`ethtool -P`; udev changes the MAC later, see `10-macpro-enp3s0-mac.link`, and netconsole keeps the device). Add to the loader entry (use your own addresses):
 
 ```
 netconsole=+6665@<local-ip>/<local-mac>,6666@<receiver-ip>/<receiver-mac>

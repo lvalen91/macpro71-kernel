@@ -1,0 +1,11 @@
+# Mac Pro 7,1: firmware hands the system MAC only to macOS (XGBE._DSM "local-mac-address", OSDW() only).
+# Linux atlantic reads the AQC107 OTP address, so DHCP sees a second device. Use the macOS MAC.
+# Install to /etc/systemd/network/. Fill in: <perm-mac> = `ethtool -P enp3s0`, <macos-mac> = macOS Ethernet MAC.
+[Match]
+PermanentMACAddress=<perm-mac>
+
+[Link]
+NamePolicy=keep kernel database onboard slot path
+AlternativeNamesPolicy=database onboard slot path mac
+MACAddressPolicy=none
+MACAddress=<macos-mac>

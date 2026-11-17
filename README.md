@@ -40,6 +40,7 @@ Check before rebooting: the new loader entry has `iommu=nopt`, and the initramfs
 |---|---|
 | `fixes/thermald/` | Zone fan control through `macsmc_hwmon` (`python3 -I tests/test_thermald.py -v`) |
 | `fixes/system/kernel-cmdline` | `iommu=nopt acpi.ec_delay=10` |
+| `fixes/system/10-macpro-enp3s0-mac.link` | Give `enp3s0` the macOS MAC (firmware passes it to macOS only) so DHCP sees one device |
 | `fixes/system/console-loglevel.service` | `dmesg -n 7` after plymouth, so netconsole gets more than `KERN_EMERG` |
 | `fixes/bluetooth/` | Hex to `.hcd` converter for Apple's BCM4364B3 firmware (untested) |
 
