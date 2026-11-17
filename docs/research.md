@@ -5,7 +5,7 @@ Hardware: Mac Pro 7,1, Xeon W-3265, Radeon Pro 580X + W6900X, T2. Fedora 45, t2l
 | Problem | Cause | Fix | Status |
 |---|---|---|---|
 | T2 panics (`PRP_DDR_ERR`) on boot | Built-in `iommu=pt` from the t2linux cmdline breaks ANS2; cause unproven (see `iommu-ans2.md`) | `iommu=nopt` | Required on every entry |
-| ~30 s of boot in ACPI EC timeouts | DSDT/ECDT declare a legacy EC (`PNP0C09`, ports 0x62/0x66) used only by macOS-path AML; real SMC is `APP0001` | `acpi.ec_delay=10`; kernel patch 0101; opt-in `acpi.ec_skip_macpro71=1` (0104) | `ec_delay=10`: kernel phase 31.7 s to 2.3 s, boot 95.6 s to 53.7 s. 0101 verified 2026-11-16 (`ec_delay` reads 10 with no cmdline parameter); cmdline parameter dropped. 0104 untested |
+| ~30 s of boot in ACPI EC timeouts | DSDT/ECDT declare a legacy EC (`PNP0C09`, ports 0x62/0x66) used only by macOS-path AML; real SMC is `APP0001` | `acpi.ec_delay=10`; kernel patch 0101; 0104 (opt-in `acpi.ec_skip_macpro71=1`) dropped | `ec_delay=10`: kernel phase 31.7 s to 2.3 s, boot 95.6 s to 53.7 s. 0101 verified 2026-11-16 (`ec_delay` reads 10 with no cmdline parameter); cmdline parameter dropped. 0104 failed (below) |
 | ~52 s udev stall at boot | `applesmc` (legacy port 0x300 SMC) probes with -5 on a T2 MMIO SMC | `SENSORS_APPLESMC` off (7.3.3 used a blacklist) | Verified |
 | No Bluetooth | BCM4364B3 on UART; ACPI reports BCM2E7C absent | linux-t2-patches 9003 | Works on 7.3.3-310 via livepatch; works on 7.3.4-macpro2 with 9003 built in, no livepatch. Runs on ROM firmware, placeholder address; Apple firmware conversion in `fixes/bluetooth/`, untested |
 | `macsmc_hwmon` fan writes look successful when the SMC write failed | `return write_key(...) > 0` turns negative errors into 0 | Kernel patch 0102 | `fan_control=Y` by default verified; error path not exercised |
@@ -59,6 +59,17 @@ The systemd watchdog drop-in (`RebootWatchdogSec=off` etc.) was removed with 7.3
 | No IPv4 until 41 s | Regression from working netconsole: it brings `enp3s0` up at 2.7 s, NetworkManager assumes the existing state (IPv6 SLAAC only) and does not run DHCP. Fix: `fixes/system/91-enp3s0-no-assume.conf` (`keep-configuration=no`). Verify next boot |
 | Retired workarounds still active in initrd | Initramfs was built before they were removed (Titan Ridge rule errors at 8.3 s). Rebuilt with `dracut -f` |
 | Fedora module blacklists missing | They left with 7.3.3's `kernel-modules-extra`; `rds`, `l2tp_*`, `batman-adv`, `floppy` are built and were autoloadable. Restored (`fixes/system/modprobe.d/`) |
+
+## 7.3.4-macpro2 V11: `acpi.ec_skip_macpro71=1` (2026-11-16). Fail
+
+| Step | Result |
+|---|---|
+| EC skipped | DSDT region `ECOR` has no handler: `_PSW` fails on ARPT, both XGBE, XHC2-7 (`AE_NOT_EXIST`) |
+| Bluetooth | `BTPU`/`BTPD` use `ECOR` and fail; `hci_uart_bcm` then oopses (NULL deref in `regulator_bulk_disable` from `bcm_gpio_set_power`, `bcm_open`) in an async probe worker |
+| Boot | `/boot/efi` (vfat, module) mount hangs 45 s, probably on the dead async worker; `local-fs.target` fails; emergency shell. Shutdown also hangs (~2.5 min, forced) |
+| Result | The legacy EC must stay. 0104 dropped in macpro3. The `hci_uart_bcm` error-path oops is a separate upstream bug |
+
+Third boot (macpro2, defaults): DHCP on `enp3s0` at 17.5 s (`91-enp3s0-no-assume.conf` works). `early-dmesg` sent empty files: `dmesg` runs as `dmesg_t` and may not write to the service's socket (silent dontaudit); fix is to pipe through `cat`.
 
 ## Fans
 

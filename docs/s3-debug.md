@@ -1,6 +1,6 @@
 # S3 resume hang: debug setup
 
-Suspend is masked (`sleep.target`, `suspend.target`). Resume hangs; the journal ends at `Successfully froze unit 'user.slice'`. Probable cause: legacy-EC ACPI paths. Unconfirmed.
+Suspend is masked (`sleep.target`, `suspend.target`). Resume hangs; the journal ends at `Successfully froze unit 'user.slice'`. Cause unknown. The legacy EC cannot be skipped to test it (see `docs/research.md`, V11).
 
 ## Built into the kernel for this
 
@@ -11,7 +11,6 @@ Suspend is masked (`sleep.target`, `suspend.target`). Resume hangs; the journal 
 | `PM_SLEEP_DEBUG`, `PM_ADVANCED_DEBUG`, `PM_DEBUG` | `pm_test`, `pm_print_times`, `pm_debug_messages` |
 | `DPM_WATCHDOG` (120 s) | Dumps the stack of a device whose suspend or resume callback hangs |
 | `DYNAMIC_DEBUG`, `ACPI_DEBUG` | Per-file debug prints |
-| `acpi.ec_skip_macpro71=1` (opt-in) | Test without the legacy EC |
 
 ## Netconsole
 
@@ -42,8 +41,6 @@ echo none | sudo tee /sys/power/pm_test     # real S3, last
 1. `freezer`, `devices`: user space and device callbacks. A hang here names a driver in the netconsole log (`PM: calling ...` with `pm_print_times`, or the `DPM_WATCHDOG` stack).
 2. `platform`, `processors`, `core`: ACPI firmware and CPU offline. A hang here points at the EC or ACPI.
 3. `none`: real S3.
-
-Then repeat with `acpi.ec_skip_macpro71=1` on a one-shot entry.
 
 ## Recovery
 

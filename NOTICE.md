@@ -25,7 +25,7 @@ A patch is licensed as the kernel file it adds or modifies. The patches here add
 The kernel as a whole, and any binary built from it, is GPL-2.0-only.
 
 - `patches/t2/`: copied unmodified from [t2linux/linux-t2-patches](https://github.com/t2linux/linux-t2-patches) @ `dd9b845`. Authors are in each patch header.
-- `patches/local/`: each patch takes the license of the file it modifies: `0101`, `0104` `drivers/acpi/ec.c` (GPL-2.0-or-later); `0102` `drivers/hwmon/macsmc-hwmon.c` (GPL-2.0-only OR MIT); `0103` `drivers/pci/quirks.c` (GPL-2.0).
+- `patches/local/`: each patch takes the license of the file it modifies: `0101` `drivers/acpi/ec.c` (GPL-2.0-or-later); `0102` `drivers/hwmon/macsmc-hwmon.c` (GPL-2.0-only OR MIT); `0103` `drivers/pci/quirks.c` (GPL-2.0).
 - `kernel/config`: derived from the Fedora t2linux kernel config (GPL-2.0-only).
 
 ## Not included
