@@ -1,0 +1,4 @@
+# Mac Pro 7,1: patch 0103 clears wake capability on Titan Ridge xHCI (15ec),
+# which also breaks runtime-PM hotplug wake. Keep these controllers awake.
+# Remove when 0103 is replaced (see docs/research.md, macpro3 hotplug).
+ACTION=="add|bind", SUBSYSTEM=="pci", ATTR{vendor}=="0x8086", ATTR{device}=="0x15ec", ATTR{power/control}="on"

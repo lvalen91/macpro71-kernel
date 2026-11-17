@@ -45,6 +45,8 @@ Check before rebooting: the new loader entry has `iommu=nopt`, and the initramfs
 | `fixes/system/91-enp3s0-no-assume.conf` | NetworkManager drop-in: run DHCP on `enp3s0` even though netconsole has already brought it up |
 | `fixes/system/modprobe.d/` | Fedora's autoload blacklists (`rds`, `l2tp_*`, `batman-adv`, `floppy`). They come with `kernel-modules-extra`, which this kernel's RPM does not replace |
 | `fixes/system/console-loglevel.service` | `dmesg -n 7` after plymouth, so netconsole gets more than `KERN_EMERG` |
+| `fixes/system/90-titan-ridge-xhci-runtime-on.rules` | Keep Titan Ridge xHCI (`15ec`) out of runtime suspend. 0103 clears wake capability, which also stops hotplug from waking the controller. Interim, until 0103 is replaced |
+| `fixes/system/lvm-global-filter.conf` | `lvm.conf` `devices/global_filter`: scan only `nvme0n1`, so an unresponsive USB disk cannot stall `lvm2-monitor` at boot |
 | `fixes/bluetooth/` | Hex to `.hcd` converter for Apple's BCM4364B3 firmware (untested) |
 
 7.3.3-era workarounds (`applesmc`/`apfs` blacklists, Titan Ridge udev rule, watchdog drop-in, `netconsole-late.service`, Bluetooth livepatch) are retired: the `macpro2` config and patches replace them. They are in git history before commit c3e7659. After removing files that the initramfs copies (`/etc/modprobe.d`, `/etc/udev/rules.d`, `/etc/systemd/system.conf.d`), run `sudo dracut -f`, or the initramfs keeps applying them.

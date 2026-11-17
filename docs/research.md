@@ -10,7 +10,7 @@ Hardware: Mac Pro 7,1, Xeon W-3265, Radeon Pro 580X + W6900X, T2. Fedora 45, t2l
 | No Bluetooth | BCM4364B3 on UART; ACPI reports BCM2E7C absent | linux-t2-patches 9003 | Works on 7.3.3-310 via livepatch; works on 7.3.4-macpro2 with 9003 built in, no livepatch. Runs on ROM firmware, placeholder address; Apple firmware conversion in `fixes/bluetooth/`, untested |
 | `macsmc_hwmon` fan writes look successful when the SMC write failed | `return write_key(...) > 0` turns negative errors into 0 | Kernel patch 0102 | `fan_control=Y` by default verified; error path not exercised |
 | GPU overheats under compute (W6900X junction 96 C, 580X 94 C at 500-600 rpm) | SMC's GPU fan loop works on Linux but integrates too slowly; `t2fanrd` has no GPU zones | `macpro-thermald` | Passed 10 min combined load: front fans ~2340 rpm, 580X 80 C, CPU 65 C, W6900X junction <= 78 C |
-| Power-on after shutdown unreliable | Titan Ridge functions armed as wake sources (t2linux/wiki#748) | Kernel patch 0103 (7.3.3 used a udev rule) | 0103 verified: NHI/xHCI have no `power/wakeup`, bridges `disabled`. Power-on-after-shutdown test pending |
+| Power-on after shutdown unreliable | Titan Ridge functions armed as wake sources (t2linux/wiki#748) | Kernel patch 0103 (7.3.3 used a udev rule) | 0103 verified: NHI/xHCI have no `power/wakeup`, bridges `disabled`. Power-on-after-shutdown test pending. Side effect: breaks hotplug (see macpro3 hotplug below) |
 | Linux Ethernet gets a different MAC than macOS (new DHCP device/address) | Firmware returns the system MAC via `XGBE._DSM` `local-mac-address` only when `OSDW()` (Darwin); `atlantic` uses the AQC107 OTP address | `fixes/system/10-macpro-enp3s0-mac.link` | Verified, live and at boot: DHCP reservation address returned |
 | APFS mount oops | NULL deref in `apfs_inode_trim_overallocation` (linux-apfs-rw#138) | `APFS_FS` off | Open |
 | S3 resume hangs | Probably legacy-EC ACPI paths | Suspend masked | Open |
@@ -83,6 +83,13 @@ Third boot (macpro2, defaults): DHCP on `enp3s0` at 17.5 s (`91-enp3s0-no-assume
 | Warnings | Same set as macpro2: EC `_PSW`/`_REG` `AE_TIME` at probe, amdgpu `dc_helper.c:53`, one DMAR fault, early W^X (ITS thunk) |
 
 macpro3 is now the default and only installed kernel; macpro2 removed.
+
+## macpro3: USB-C hotplug and slow boot (2026-11-16)
+
+| Issue | Cause | Fix | Status |
+|---|---|---|---|
+| Device plugged into a Thunderbolt port not detected | 0103 `device_set_wakeup_capable(false)` on `15ec` also disables runtime PME (`pci_dev_run_wake` needs `device_can_wakeup`). Controller in D3 with PME pending, never resumed | `fixes/system/90-titan-ridge-xhci-runtime-on.rules`. Proper fix: drop 0103, keep wake capable, set `power/wakeup=disabled` from a udev rule on `bind`; retest power-on after shutdown | Writing `power/control=on` enumerated the hub at once. Rule verified via `udevadm trigger`; boot unverified |
+| Userspace 86 s with a USB-C hub attached | Card reader LUN stuck in `sd` spin-up; `lvm2-monitor` (scans all block devices) waited 74 s until the hub was unplugged | `fixes/system/lvm-global-filter.conf` | `pvs` skips `sd*`; `vgchange --monitor y` 0.05 s. Boot unverified |
 
 ## Fans
 
