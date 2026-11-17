@@ -1,0 +1,29 @@
+[Unit]
+Description=MacPro7,1 zone fan control (macpro-thermald)
+Documentation=file:///usr/share/doc/macpro-thermald/README.md
+# Never run beside another fan writer.
+Conflicts=t2fanrd.service
+After=systemd-modules-load.service
+Before=display-manager.service
+
+[Service]
+Type=notify
+NotifyAccess=main
+# macsmc_hwmon is bound by udev; ask for it and let the daemon wait for the hwmon node.
+ExecStartPre=-/usr/sbin/modprobe -q macsmc_hwmon
+ExecStart=/usr/libexec/macpro-thermald --conf /etc/macpro-thermald.conf --wait 45
+# Whatever happens to the daemon (crash, SIGKILL, watchdog), fans end at max.
+# --max-now only touches the fan files and does not need the config.
+ExecStopPost=/usr/libexec/macpro-thermald --max-now
+# Dead or stalled daemon => restart; the fans stay at max until the new one takes over.
+WatchdogSec=30
+Restart=always
+RestartSec=2
+# 78 = no SMC fan interface (wrong kernel); 69 = interface present but not controllable
+# (fan_control cannot be enabled): do not loop, the SMC keeps automatic control.
+RestartPreventExitStatus=78 69
+KillMode=process
+TimeoutStopSec=10
+
+[Install]
+WantedBy=multi-user.target
