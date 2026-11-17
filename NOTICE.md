@@ -6,7 +6,7 @@ This repo mixes original work with third-party kernel patches. Each part keeps i
 
 Copyright (C) 2026 lvalen91. Text in `LICENSE` and `LICENSES/GPL-2.0-only.txt`.
 
-- `fixes/` (thermald, system config, Bluetooth converter, `bt-livepatch`)
+- `fixes/` (thermald, system config, Bluetooth converter)
 - `kernel/build.sh`
 - `docs/`, `README.md`, this file
 

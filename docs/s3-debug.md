@@ -15,11 +15,13 @@ Suspend is masked (`sleep.target`, `suspend.target`). Resume hangs; the journal 
 
 ## Netconsole
 
-Replaces `netconsole-late.service`, which does `modprobe netconsole` and fails when it is built in. Disable that service on this kernel. Add to the loader entry (use your own addresses):
+Built in; starts at ~2.7 s, before udev renames the NIC (`eth0` -> `enp3s0`), so name the local NIC by MAC. Add to the loader entry (use your own addresses):
 
 ```
-netconsole=+6665@<local-ip>/<dev>,6666@<receiver-ip>/<receiver-mac>
+netconsole=+6665@<local-ip>/<local-mac>,6666@<receiver-ip>/<receiver-mac>
 ```
+
+`fixes/system/console-loglevel.service` restores loglevel 7 after plymouth.
 
 Receiver: `nc -u -l 6666`. Set `dmesg -n 8` before testing.
 

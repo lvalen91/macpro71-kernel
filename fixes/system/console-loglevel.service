@@ -1,0 +1,13 @@
+# Plymouth leaves console_loglevel at 1; consoles (incl. built-in netconsole) then get only KERN_EMERG.
+# Restore the kernel default 7 once plymouth has quit.
+[Unit]
+Description=Restore console loglevel 7 after plymouth (netconsole)
+After=plymouth-quit-wait.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/bin/dmesg -n 7
+
+[Install]
+WantedBy=multi-user.target

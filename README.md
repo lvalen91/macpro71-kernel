@@ -40,9 +40,10 @@ Check before rebooting: the new loader entry has `iommu=nopt`, and the initramfs
 |---|---|
 | `fixes/thermald/` | Zone fan control through `macsmc_hwmon` (`python3 -I tests/test_thermald.py -v`) |
 | `fixes/system/kernel-cmdline` | `iommu=nopt acpi.ec_delay=10` |
+| `fixes/system/console-loglevel.service` | `dmesg -n 7` after plymouth, so netconsole gets more than `KERN_EMERG` |
 | `fixes/bluetooth/` | Hex to `.hcd` converter for Apple's BCM4364B3 firmware (untested) |
-| `fixes/legacy/system/` | Blacklists, wakeup rule and watchdog drop-in, replaced by the `macpro2` kernel config and patches; still needed on 7.3.3 |
-| `fixes/legacy/bt-livepatch/` | Bluetooth livepatch for 7.3.3-310, obsolete with patch 9003 built in |
+
+7.3.3-era workarounds (`applesmc`/`apfs` blacklists, Titan Ridge udev rule, watchdog drop-in, `netconsole-late.service`, Bluetooth livepatch) are retired: the `macpro2` config and patches replace them. They are in git history before this commit.
 
 Install paths: the daemon as `/usr/libexec/macpro-thermald`, its config as `/etc/macpro-thermald.conf`, the unit in `/usr/lib/systemd/system/`.
 

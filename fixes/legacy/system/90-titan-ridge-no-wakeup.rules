@@ -1,4 +1,0 @@
-# 2026-11-15: disable PCI wakeup on all Intel Titan Ridge Thunderbolt 3 functions (bridges 15ea, NHI 15eb, xHCI 15ec).
-# Keeps them from being armed as wake/power-on sources at shutdown (t2linux/wiki#748: MacPro7,1 powers back on after S5).
-# Undo: delete this file (takes effect next boot).
-ACTION=="add", SUBSYSTEM=="pci", ATTR{vendor}=="0x8086", ATTR{device}=="0x15e[abc]", ATTR{power/wakeup}="disabled"

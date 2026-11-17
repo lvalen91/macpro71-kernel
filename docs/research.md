@@ -6,12 +6,12 @@ Hardware: Mac Pro 7,1, Xeon W-3265, Radeon Pro 580X + W6900X, T2. Fedora 45, t2l
 |---|---|---|---|
 | T2 panics (`PRP_DDR_ERR`) on boot | Built-in `iommu=pt` from the t2linux cmdline breaks ANS2; cause unproven (see `iommu-ans2.md`) | `iommu=nopt` | Required on every entry |
 | ~30 s of boot in ACPI EC timeouts | DSDT/ECDT declare a legacy EC (`PNP0C09`, ports 0x62/0x66) used only by macOS-path AML; real SMC is `APP0001` | `acpi.ec_delay=10`; kernel patch 0101; opt-in `acpi.ec_skip_macpro71=1` (0104) | `ec_delay=10`: kernel phase 31.7 s to 2.3 s, boot 95.6 s to 53.7 s. Patches 0101/0104 unverified (test entry still sets `ec_delay=10`) |
-| ~52 s udev stall at boot | `applesmc` (legacy port 0x300 SMC) probes with -5 on a T2 MMIO SMC | Blacklist `applesmc` (7.3.3); `SENSORS_APPLESMC` off (macpro2) | Verified on both |
+| ~52 s udev stall at boot | `applesmc` (legacy port 0x300 SMC) probes with -5 on a T2 MMIO SMC | `SENSORS_APPLESMC` off (7.3.3 used a blacklist) | Verified |
 | No Bluetooth | BCM4364B3 on UART; ACPI reports BCM2E7C absent | linux-t2-patches 9003 | Works on 7.3.3-310 via livepatch; works on 7.3.4-macpro2 with 9003 built in, no livepatch. Runs on ROM firmware, placeholder address; Apple firmware conversion in `fixes/bluetooth/`, untested |
 | `macsmc_hwmon` fan writes look successful when the SMC write failed | `return write_key(...) > 0` turns negative errors into 0 | Kernel patch 0102 | `fan_control=Y` by default verified; error path not exercised |
 | GPU overheats under compute (W6900X junction 96 C, 580X 94 C at 500-600 rpm) | SMC's GPU fan loop works on Linux but integrates too slowly; `t2fanrd` has no GPU zones | `macpro-thermald` | Passed 10 min combined load: front fans ~2340 rpm, 580X 80 C, CPU 65 C, W6900X junction <= 78 C |
-| Power-on after shutdown unreliable | Titan Ridge functions armed as wake sources (t2linux/wiki#748) | udev rule `power/wakeup=disabled`; kernel patch 0103 | 0103 verified: NHI/xHCI have no `power/wakeup`, bridges `disabled`. Power-on-after-shutdown test pending |
-| APFS mount oops | NULL deref in `apfs_inode_trim_overallocation` (linux-apfs-rw#138) | Block the module | Open |
+| Power-on after shutdown unreliable | Titan Ridge functions armed as wake sources (t2linux/wiki#748) | Kernel patch 0103 (7.3.3 used a udev rule) | 0103 verified: NHI/xHCI have no `power/wakeup`, bridges `disabled`. Power-on-after-shutdown test pending |
+| APFS mount oops | NULL deref in `apfs_inode_trim_overallocation` (linux-apfs-rw#138) | `APFS_FS` off | Open |
 | S3 resume hangs | Probably legacy-EC ACPI paths | Suspend masked | Open |
 | Power-off when switching macOS/Linux | Firmware tried a stale `\EFI\fedora\shimx64.efi` boot entry, then fell back to macOS boot.efi, whose FileVault unlock failed and reset the machine | Boot config fix, see below | Fixed 2026-11-16: macOS -> restart -> Linux boots, no power loss |
 
@@ -30,6 +30,8 @@ Fixed 2026-11-16 from macOS. Resulting state, checked from Linux:
 
 Result: macOS -> restart -> Linux boots cleanly, no power loss. Linux -> macOS not retested.
 
+The systemd watchdog drop-in (`RebootWatchdogSec=off` etc.) was removed with 7.3.3: macpro2 has no watchdog device (`MACSMC_WDT` off; `iTCO_wdt` has no `lpc_ich` cell to bind).
+
 ## 7.3.4-macpro2 first boot (2026-11-16)
 
 | Check | Result |
@@ -39,8 +41,8 @@ Result: macOS -> restart -> Linux boots cleanly, no power loss. Linux -> macOS n
 | Hardware | CPU 48 threads, 235 GB, EDAC; both GPUs (amdgpu); both AQC107; Wi-Fi BCM4364 (brcmfmac); Bluetooth; NVMe (SMART pass, XFS root); T2 bce/vhci/audio/NCM; macsmc hwmon/power/rtc; 4x Titan Ridge; 11 USB buses |
 | Fans | `macpro-thermald` active, front fans on one target |
 | `apfs`, `applesmc`, SMC watchdog | Absent, as configured |
-| netconsole | Fails: built in, it starts at 2.7 s while the NIC is still `eth0` (renamed at 10.6 s). Use the local MAC instead of the interface name in `netconsole=` |
-| udev `90-titan-ridge-no-wakeup.rules` | 16 harmless errors on macpro2 (0103 removes `power/wakeup`); needs a `TEST=="power/wakeup"` guard to serve both kernels |
+| netconsole | Failed: built in, it starts at 2.7 s while the NIC is still `eth0` (renamed at 10.6 s). Fixed by naming the local NIC by MAC in `netconsole=` (unverified) |
+| udev `90-titan-ridge-no-wakeup.rules` | 16 harmless errors on macpro2 (0103 removes `power/wakeup`); rule retired |
 | `DRM_PANIC_SCREEN="qr_code"` | Falls back to `user` (QR code needs Rust); set `kmsg` in the next config |
 
 ## Fans
