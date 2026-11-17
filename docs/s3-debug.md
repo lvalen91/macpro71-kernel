@@ -21,7 +21,7 @@ Built in; starts at ~2.7 s, before udev renames the NIC (`eth0` -> `enp3s0`), so
 netconsole=+6665@<local-ip>/<local-mac>,6666@<receiver-ip>/<receiver-mac>
 ```
 
-`fixes/system/console-loglevel.service` restores loglevel 7 after plymouth.
+`fixes/system/console-loglevel.service` restores loglevel 7 after plymouth. Messages before that (~19 s) are not sent; the AQC107 link is up at ~8.4 s, and netconsole waits up to 4 s for carrier at start.
 
 Receiver: `nc -u -l 6666`. Set `dmesg -n 8` before testing.
 

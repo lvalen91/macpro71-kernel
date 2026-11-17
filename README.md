@@ -13,7 +13,7 @@ Custom Linux kernel and fixes for the Mac Pro 7,1 (2019, T2) on Fedora 45.
 - Base: kernel.org 7.3.4
 - Patches: [t2linux/linux-t2-patches](https://github.com/t2linux/linux-t2-patches) @ `dd9b845` (`kernel/patches/t2/`, in `series` order), including 9003 (MacPro7,1 Bluetooth)
 - Local patches (`kernel/patches/local/`):
-  - `0101` ACPI EC: 10 ms transaction timeout on MacPro7,1 (DMI quirk, skipped if `acpi.ec_delay` is set)
+  - `0101` ACPI EC: 10 ms transaction timeout on MacPro7,1 (DMI quirk, skipped if `acpi.ec_delay` is set). Verified
   - `0102` hwmon macsmc: return fan write errors (they were turned into success); fan control on by default on x86
   - `0103` PCI: Titan Ridge NHI/xHCI not wake-capable on MacPro7,1
   - `0104` ACPI EC: opt-in `acpi.ec_skip_macpro71=1` to ignore the legacy EC (untested)
@@ -39,12 +39,14 @@ Check before rebooting: the new loader entry has `iommu=nopt`, and the initramfs
 | File | Purpose |
 |---|---|
 | `fixes/thermald/` | Zone fan control through `macsmc_hwmon` (`python3 -I tests/test_thermald.py -v`) |
-| `fixes/system/kernel-cmdline` | `iommu=nopt acpi.ec_delay=10` |
+| `fixes/system/kernel-cmdline` | `iommu=nopt` (patch 0101 sets the EC delay) |
 | `fixes/system/10-macpro-enp3s0-mac.link` | Give `enp3s0` the macOS MAC (firmware passes it to macOS only) so DHCP sees one device |
+| `fixes/system/91-enp3s0-no-assume.conf` | NetworkManager drop-in: run DHCP on `enp3s0` even though netconsole has already brought it up |
+| `fixes/system/modprobe.d/` | Fedora's autoload blacklists (`rds`, `l2tp_*`, `batman-adv`, `floppy`). They come with `kernel-modules-extra`, which this kernel's RPM does not replace |
 | `fixes/system/console-loglevel.service` | `dmesg -n 7` after plymouth, so netconsole gets more than `KERN_EMERG` |
 | `fixes/bluetooth/` | Hex to `.hcd` converter for Apple's BCM4364B3 firmware (untested) |
 
-7.3.3-era workarounds (`applesmc`/`apfs` blacklists, Titan Ridge udev rule, watchdog drop-in, `netconsole-late.service`, Bluetooth livepatch) are retired: the `macpro2` config and patches replace them. They are in git history before this commit.
+7.3.3-era workarounds (`applesmc`/`apfs` blacklists, Titan Ridge udev rule, watchdog drop-in, `netconsole-late.service`, Bluetooth livepatch) are retired: the `macpro2` config and patches replace them. They are in git history before commit c3e7659. After removing files that the initramfs copies (`/etc/modprobe.d`, `/etc/udev/rules.d`, `/etc/systemd/system.conf.d`), run `sudo dracut -f`, or the initramfs keeps applying them.
 
 Install paths: the daemon as `/usr/libexec/macpro-thermald`, its config as `/etc/macpro-thermald.conf`, the unit in `/usr/lib/systemd/system/`.
 

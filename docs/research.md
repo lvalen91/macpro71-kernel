@@ -5,13 +5,13 @@ Hardware: Mac Pro 7,1, Xeon W-3265, Radeon Pro 580X + W6900X, T2. Fedora 45, t2l
 | Problem | Cause | Fix | Status |
 |---|---|---|---|
 | T2 panics (`PRP_DDR_ERR`) on boot | Built-in `iommu=pt` from the t2linux cmdline breaks ANS2; cause unproven (see `iommu-ans2.md`) | `iommu=nopt` | Required on every entry |
-| ~30 s of boot in ACPI EC timeouts | DSDT/ECDT declare a legacy EC (`PNP0C09`, ports 0x62/0x66) used only by macOS-path AML; real SMC is `APP0001` | `acpi.ec_delay=10`; kernel patch 0101; opt-in `acpi.ec_skip_macpro71=1` (0104) | `ec_delay=10`: kernel phase 31.7 s to 2.3 s, boot 95.6 s to 53.7 s. Patches 0101/0104 unverified (test entry still sets `ec_delay=10`) |
+| ~30 s of boot in ACPI EC timeouts | DSDT/ECDT declare a legacy EC (`PNP0C09`, ports 0x62/0x66) used only by macOS-path AML; real SMC is `APP0001` | `acpi.ec_delay=10`; kernel patch 0101; opt-in `acpi.ec_skip_macpro71=1` (0104) | `ec_delay=10`: kernel phase 31.7 s to 2.3 s, boot 95.6 s to 53.7 s. 0101 verified 2026-11-16 (`ec_delay` reads 10 with no cmdline parameter); cmdline parameter dropped. 0104 untested |
 | ~52 s udev stall at boot | `applesmc` (legacy port 0x300 SMC) probes with -5 on a T2 MMIO SMC | `SENSORS_APPLESMC` off (7.3.3 used a blacklist) | Verified |
 | No Bluetooth | BCM4364B3 on UART; ACPI reports BCM2E7C absent | linux-t2-patches 9003 | Works on 7.3.3-310 via livepatch; works on 7.3.4-macpro2 with 9003 built in, no livepatch. Runs on ROM firmware, placeholder address; Apple firmware conversion in `fixes/bluetooth/`, untested |
 | `macsmc_hwmon` fan writes look successful when the SMC write failed | `return write_key(...) > 0` turns negative errors into 0 | Kernel patch 0102 | `fan_control=Y` by default verified; error path not exercised |
 | GPU overheats under compute (W6900X junction 96 C, 580X 94 C at 500-600 rpm) | SMC's GPU fan loop works on Linux but integrates too slowly; `t2fanrd` has no GPU zones | `macpro-thermald` | Passed 10 min combined load: front fans ~2340 rpm, 580X 80 C, CPU 65 C, W6900X junction <= 78 C |
 | Power-on after shutdown unreliable | Titan Ridge functions armed as wake sources (t2linux/wiki#748) | Kernel patch 0103 (7.3.3 used a udev rule) | 0103 verified: NHI/xHCI have no `power/wakeup`, bridges `disabled`. Power-on-after-shutdown test pending |
-| Linux Ethernet gets a different MAC than macOS (new DHCP device/address) | Firmware returns the system MAC via `XGBE._DSM` `local-mac-address` only when `OSDW()` (Darwin); `atlantic` uses the AQC107 OTP address | `fixes/system/10-macpro-enp3s0-mac.link` | Verified live: DHCP reservation address returned. Boot-time apply pending |
+| Linux Ethernet gets a different MAC than macOS (new DHCP device/address) | Firmware returns the system MAC via `XGBE._DSM` `local-mac-address` only when `OSDW()` (Darwin); `atlantic` uses the AQC107 OTP address | `fixes/system/10-macpro-enp3s0-mac.link` | Verified, live and at boot: DHCP reservation address returned |
 | APFS mount oops | NULL deref in `apfs_inode_trim_overallocation` (linux-apfs-rw#138) | `APFS_FS` off | Open |
 | S3 resume hangs | Probably legacy-EC ACPI paths | Suspend masked | Open |
 | Power-off when switching macOS/Linux | Firmware tried a stale `\EFI\fedora\shimx64.efi` boot entry, then fell back to macOS boot.efi, whose FileVault unlock failed and reset the machine | Boot config fix, see below | Fixed 2026-11-16: macOS -> restart -> Linux boots, no power loss |
@@ -45,6 +45,20 @@ The systemd watchdog drop-in (`RebootWatchdogSec=off` etc.) was removed with 7.3
 | netconsole | Failed: built in, it starts at 2.7 s while the NIC is still `eth0` (renamed at 10.6 s). Fixed by naming the local NIC by MAC in `netconsole=` (unverified) |
 | udev `90-titan-ridge-no-wakeup.rules` | 16 harmless errors on macpro2 (0103 removes `power/wakeup`); rule retired |
 | `DRM_PANIC_SCREEN="qr_code"` | Falls back to `user` (QR code needs Rust); set `kmsg` in the next config |
+
+## 7.3.4-macpro2 second boot (2026-11-16, no `acpi.ec_delay`)
+
+| Check | Result |
+|---|---|
+| Patch 0101 | `/sys/module/acpi/parameters/ec_delay` = 10 with no cmdline parameter. Pass |
+| Boot time | kernel 7.2 s, initrd 6.8 s, userspace 10.3 s. The extra kernel time is netconsole waiting for carrier (2.7 s to 7.1 s, then `timeout waiting for carrier`; AQC107 link up at 8.4 s), not the EC. The first boot was faster because netconsole failed at once |
+| `10-macpro-enp3s0-mac.link` | Applied at boot: `enp3s0` has the macOS MAC and the reserved address |
+| netconsole | Works at boot (NIC named by MAC). Receiver gets messages from ~19 s: the link is down until 8.4 s and plymouth holds the console loglevel at 1 until `console-loglevel.service` |
+| Console loglevel | 7 after `console-loglevel.service` |
+| Kernel warnings | Same set as the first boot and 7.3.3 (EC `AE_TIME` x11 at 10 ms each, AER `UnsupReq` burst from DSDT probes, amdgpu `dc_helper.c:53`, Thunderbolt device links, BCM4364 P2P -52). Only change: netconsole no longer fails |
+| No IPv4 until 41 s | Regression from working netconsole: it brings `enp3s0` up at 2.7 s, NetworkManager assumes the existing state (IPv6 SLAAC only) and does not run DHCP. Fix: `fixes/system/91-enp3s0-no-assume.conf` (`keep-configuration=no`). Verify next boot |
+| Retired workarounds still active in initrd | Initramfs was built before they were removed (Titan Ridge rule errors at 8.3 s). Rebuilt with `dracut -f` |
+| Fedora module blacklists missing | They left with 7.3.3's `kernel-modules-extra`; `rds`, `l2tp_*`, `batman-adv`, `floppy` are built and were autoloadable. Restored (`fixes/system/modprobe.d/`) |
 
 ## Fans
 

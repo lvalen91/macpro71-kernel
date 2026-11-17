@@ -1,1 +1,1 @@
-ro iommu=nopt acpi.ec_delay=10
+ro iommu=nopt
