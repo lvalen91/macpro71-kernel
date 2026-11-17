@@ -71,6 +71,19 @@ The systemd watchdog drop-in (`RebootWatchdogSec=off` etc.) was removed with 7.3
 
 Third boot (macpro2, defaults): DHCP on `enp3s0` at 17.5 s (`91-enp3s0-no-assume.conf` works). `early-dmesg` sent empty files: `dmesg` runs as `dmesg_t` and may not write to the service's socket (silent dontaudit); fix is to pipe through `cat`.
 
+## 7.3.4-macpro3 first boot (2026-11-16). Pass
+
+| Check | Result |
+|---|---|
+| `ec_delay` | 10 with no cmdline parameter (0101) |
+| `ec_skip` | Absent (0104 dropped) |
+| DRM panic | `kmsg`; `qr_code` fallback message gone |
+| Network, Bluetooth, fans | DHCP on `enp3s0`; hci0 powered; `macpro-thermald` running, `/dev/smc` present |
+| Boot | `/boot/efi` mounted; no oops; no failed units. Kernel 7.2 s (netconsole carrier wait), userspace 12.7 s |
+| Warnings | Same set as macpro2: EC `_PSW`/`_REG` `AE_TIME` at probe, amdgpu `dc_helper.c:53`, one DMAR fault, early W^X (ITS thunk) |
+
+macpro3 is now the default and only installed kernel; macpro2 removed.
+
 ## Fans
 
 - Map: F0 rear blower (RAM, PSU, flash); F1 W6900X; F2 580X; F3 CPU.

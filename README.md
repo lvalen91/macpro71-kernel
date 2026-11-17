@@ -26,7 +26,7 @@ Custom Linux kernel and fixes for the Mac Pro 7,1 (2019, T2) on Fedora 45.
   - `DRM_PANIC_SCREEN=kmsg`
   - S3 debug options: see `docs/s3-debug.md`
 - Output: `kernel-7.3.4_macpro3-N.fc45.x86_64.rpm`
-- Status: boots and runs all hardware on the Mac Pro 7,1 (2026-11-16); results in `docs/research.md`. `netconsole=` must name the NIC by MAC (built-in netconsole starts before interface renaming)
+- Status: macpro3 boots and runs all hardware on the Mac Pro 7,1 and is the installed default (2026-11-16); results in `docs/research.md`. `netconsole=` must name the NIC by MAC (built-in netconsole starts before interface renaming)
 
 ```
 ./kernel/build.sh
