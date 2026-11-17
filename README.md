@@ -25,6 +25,7 @@ Custom Linux kernel and fixes for the Mac Pro 7,1 (2019, T2) on Fedora 45.
   - Kept: all USB, Thunderbolt, PCI, storage, network, filesystem and GPU drivers (plug-in hardware)
   - S3 debug options: see `docs/s3-debug.md`
 - Output: `kernel-7.3.4_macpro2-N.fc45.x86_64.rpm`
+- Status: boots and runs all hardware on the Mac Pro 7,1 (2026-11-16); results in `docs/research.md`. `netconsole=` must name the NIC by MAC (built-in netconsole starts before interface renaming)
 
 ```
 ./kernel/build.sh
@@ -47,7 +48,7 @@ Install paths: the daemon as `/usr/libexec/macpro-thermald`, its config as `/etc
 
 ## Docs
 
-- `docs/research.md`: problem, cause, fix, status
+- `docs/research.md`: problem, cause, fix, status; macOS/Linux switching fix; first-boot results
 - `docs/iommu-ans2.md`: why `iommu=pt` panics the T2, and safe ways to investigate
 - `docs/s3-debug.md`: suspend debug setup and procedure
 
